@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quantum Route Optimizer — VS Code Guide</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Clash+Display:wght@500;600;700&family=Cabinet+Grotesk:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0e0f13;
+  --s1: #13151c;
+  --s2: #191c26;
+  --s3: #1f2333;
+  --b1: #252a3a;
+  --b2: #2e3650;
+  --cyan: #38bdf8;
+  --cyan-d: #0ea5e9;
+  --purple: #a78bfa;
+  --green: #34d399;
+  --amber: #fbbf24;
+  --rose: #fb7185;
+  --pink: #f472b6;
+  --text: #e2e8f0;
+  --muted: #64748b;
+  --dim: #334155;
+  --r: 10px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Cabinet Grotesk', sans-serif;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* Noise overlay */
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none;
+  opacity: .6;
+}
+
+.wrap { position: relative; z-index: 1; max-width: 960px; margin: 0 auto; padding: 0 24px 80px; }
+
+/* ── HEADER ── */
+.hero {
+  padding: 60px 0 50px;
+  text-align: center;
+  position: relative;
+}
+.hero-glow {
+  position: absolute;
+  top: 20px; left: 50%; transform: translateX(-50%);
+  width: 500px; height: 300px;
+  background: radial-gradient(ellipse, rgba(56,189,248,.12) 0%, transparent 70%);
+  pointer-events: none;
+}
+.tag {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: rgba(56,189,248,.08);
+  border: 1px solid rgba(56,189,248,.25);
+  color: var(--cyan); font-family: 'DM Mono', monospace;
+  font-size: 11px; letter-spacing: 2px; text-transform: uppercase;
+  padding: 5px 14px; border-radius: 20px; margin-bottom: 22px;
+}
+.tag-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--cyan); animation: blink 1.4s infinite; }
+@keyframes blink { 0%,100%{opacity:1}50%{opacity:.3} }
+
+h1 {
+  font-family: 'Clash Display', sans-serif;
+  font-size: clamp(32px, 5vw, 52px);
+  font-weight: 700;
+  letter-spacing: -1.5px;
+  line-height: 1.1;
+  margin-bottom: 16px;
+  background: linear-gradient(135deg, #fff 0%, #94a3b8 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+h1 span { background: linear-gradient(135deg, var(--cyan), var(--purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.hero-sub {
+  font-size: 16px; color: var(--muted); max-width: 560px; margin: 0 auto 32px;
+}
+.hero-chips { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+.chip {
+  padding: 6px 14px; border-radius: 20px; font-size: 12px;
+  font-family: 'DM Mono', monospace; letter-spacing: .5px;
+  border: 1px solid;
+}
+.chip.c { border-color: var(--cyan); color: var(--cyan); background: rgba(56,189,248,.06); }
+.chip.p { border-color: var(--purple); color: var(--purple); background: rgba(167,139,250,.06); }
+.chip.g { border-color: var(--green); color: var(--green); background: rgba(52,211,153,.06); }
+.chip.a { border-color: var(--amber); color: var(--amber); background: rgba(251,191,36,.06); }
+
+/* ── SECTION TITLES ── */
+.sec-head {
+  display: flex; align-items: center; gap: 14px;
+  margin: 48px 0 20px;
+}
+.sec-num {
+  width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Clash Display', sans-serif; font-size: 16px; font-weight: 700;
+}
+.sec-num.c { background: rgba(56,189,248,.15); color: var(--cyan); border: 1px solid rgba(56,189,248,.3); }
+.sec-num.p { background: rgba(167,139,250,.15); color: var(--purple); border: 1px solid rgba(167,139,250,.3); }
+.sec-num.g { background: rgba(52,211,153,.15); color: var(--green); border: 1px solid rgba(52,211,153,.3); }
+.sec-num.a { background: rgba(251,191,36,.15); color: var(--amber); border: 1px solid rgba(251,191,36,.3); }
+.sec-num.r { background: rgba(251,113,133,.15); color: var(--rose); border: 1px solid rgba(251,113,133,.3); }
+
+.sec-title { font-family: 'Clash Display', sans-serif; font-size: 22px; font-weight: 600; letter-spacing: -.5px; }
+.sec-line { flex: 1; height: 1px; background: var(--b1); }
+
+/* ── CARDS ── */
+.card {
+  background: var(--s1);
+  border: 1px solid var(--b1);
+  border-radius: var(--r);
+  padding: 24px;
+  margin-bottom: 14px;
+}
+.card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media(max-width:640px){ .card-grid{ grid-template-columns: 1fr; } }
+
+/* ── STEP CARDS ── */
+.step-card {
+  background: var(--s2);
+  border: 1px solid var(--b1);
+  border-radius: var(--r);
+  overflow: hidden;
+  margin-bottom: 12px;
+  transition: border-color .2s;
+}
+.step-card:hover { border-color: var(--b2); }
+.step-header {
+  display: flex; align-items: center; gap: 14px;
+  padding: 16px 20px;
+  cursor: pointer;
+  user-select: none;
+}
+.step-badge {
+  font-family: 'DM Mono', monospace; font-size: 11px;
+  padding: 3px 8px; border-radius: 6px; flex-shrink: 0;
+}
+.step-name { font-size: 15px; font-weight: 700; flex: 1; }
+.step-arrow { color: var(--muted); font-size: 12px; transition: transform .2s; }
+.step-card.open .step-arrow { transform: rotate(90deg); }
+.step-body { padding: 0 20px 18px; display: none; }
+.step-card.open .step-body { display: block; }
+
+/* ── CODE BLOCKS ── */
+.code-wrap {
+  background: #0a0c10;
+  border: 1px solid var(--b1);
+  border-radius: 8px;
+  overflow: hidden;
+  margin: 12px 0;
+  font-family: 'DM Mono', monospace;
+}
+.code-bar {
+  background: var(--s3);
+  border-bottom: 1px solid var(--b1);
+  padding: 8px 14px;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px;
+}
+.code-dots { display: flex; gap: 5px; }
+.code-dots span { width: 10px; height: 10px; border-radius: 50%; }
+.code-dots .r { background: #ff5f56; }
+.code-dots .y { background: #ffbd2e; }
+.code-dots .g { background: #27c93f; }
+.code-label { font-size: 10px; letter-spacing: 1.5px; color: var(--muted); text-transform: uppercase; }
+.copy-btn {
+  font-family: 'DM Mono', monospace; font-size: 10px;
+  color: var(--muted); background: transparent; border: 1px solid var(--dim);
+  padding: 3px 10px; border-radius: 5px; cursor: pointer; letter-spacing: 1px;
+  transition: all .15s;
+}
+.copy-btn:hover { color: var(--cyan); border-color: var(--cyan); }
+.copy-btn.copied { color: var(--green); border-color: var(--green); }
+pre {
+  padding: 16px 18px;
+  font-size: 12.5px;
+  line-height: 1.7;
+  overflow-x: auto;
+  color: #c9d1d9;
+}
+.kw { color: #ff79c6; }
+.fn { color: #50fa7b; }
+.st { color: #f1fa8c; }
+.cm { color: #6272a4; font-style: italic; }
+.nu { color: #bd93f9; }
+.cl { color: #8be9fd; }
+.op { color: #ff79c6; }
+
+/* ── OUTPUT BOX ── */
+.output-box {
+  background: #050607;
+  border: 1px solid var(--b1);
+  border-left: 3px solid var(--green);
+  border-radius: 0 8px 8px 0;
+  padding: 14px 16px;
+  font-family: 'DM Mono', monospace;
+  font-size: 11.5px;
+  line-height: 1.8;
+  margin: 12px 0;
+}
+.out-line { display: flex; gap: 10px; }
+.out-label { color: var(--green); flex-shrink: 0; }
+.out-val { color: #94a3b8; }
+.out-val.hi { color: var(--cyan); }
+.out-val.w { color: var(--amber); }
+
+/* ── FILE TREE ── */
+.tree {
+  background: #0a0c10;
+  border: 1px solid var(--b1);
+  border-radius: 8px;
+  padding: 16px 20px;
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  line-height: 2;
+}
+.tree-item { display: flex; align-items: center; gap: 8px; color: #94a3b8; }
+.tree-item.dir { color: var(--cyan); }
+.tree-item.main { color: var(--amber); font-weight: 500; }
+.tree-item.py { color: var(--green); }
+.tree-item.txt { color: var(--muted); }
+.tree-indent { padding-left: 20px; }
+.tree-indent2 { padding-left: 40px; }
+.fi { opacity: .6; }
+
+/* ── ALGO FLOW ── */
+.algo-flow {
+  display: flex; flex-direction: column; gap: 0;
+  border: 1px solid var(--b1); border-radius: var(--r); overflow: hidden;
+}
+.algo-step {
+  display: grid; grid-template-columns: 52px 1fr;
+  border-bottom: 1px solid var(--b1);
+}
+.algo-step:last-child { border-bottom: none; }
+.algo-idx {
+  background: var(--s3);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'DM Mono', monospace; font-size: 11px;
+  border-right: 1px solid var(--b1);
+  flex-shrink: 0;
+}
+.algo-body { padding: 14px 18px; background: var(--s2); }
+.algo-title { font-size: 13px; font-weight: 700; margin-bottom: 3px; }
+.algo-desc { font-size: 12px; color: var(--muted); line-height: 1.5; }
+.algo-file { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--dim); margin-top: 4px; }
+
+/* ── TIPS ── */
+.tip {
+  display: flex; gap: 12px; align-items: flex-start;
+  background: var(--s2); border: 1px solid var(--b1);
+  border-radius: 8px; padding: 14px 16px; margin-bottom: 10px;
+}
+.tip-icon { font-size: 16px; flex-shrink: 0; margin-top: 2px; }
+.tip-text { font-size: 13px; color: #94a3b8; }
+.tip-text strong { color: var(--text); }
+.tip-text code {
+  font-family: 'DM Mono', monospace; font-size: 11px;
+  background: var(--s3); padding: 1px 6px; border-radius: 4px;
+  color: var(--cyan);
+}
+
+/* ── RESULT TABLE ── */
+.res-table {
+  width: 100%; border-collapse: collapse;
+  font-size: 12.5px;
+}
+.res-table th {
+  background: var(--s3); color: var(--muted);
+  font-family: 'DM Mono', monospace; font-size: 10px;
+  letter-spacing: 1.5px; text-transform: uppercase;
+  padding: 10px 14px; text-align: left;
+  border-bottom: 1px solid var(--b1);
+}
+.res-table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(255,255,255,.04);
+  vertical-align: middle;
+}
+.res-table tr:last-child td { border-bottom: none; }
+.res-table tr:hover td { background: rgba(255,255,255,.02); }
+.mono { font-family: 'DM Mono', monospace; font-size: 11px; }
+.badge-sm {
+  display: inline-block; padding: 2px 8px; border-radius: 4px;
+  font-family: 'DM Mono', monospace; font-size: 10px;
+}
+.b-c { background: rgba(56,189,248,.1); color: var(--cyan); }
+.b-g { background: rgba(52,211,153,.1); color: var(--green); }
+.b-p { background: rgba(167,139,250,.1); color: var(--purple); }
+
+/* ── EXT TABLE ── */
+.ext-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.ext-card {
+  background: var(--s2); border: 1px solid var(--b1);
+  border-radius: 8px; padding: 14px 16px;
+}
+.ext-name { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+.ext-desc { font-size: 11.5px; color: var(--muted); }
+
+/* Divider */
+.div { height: 1px; background: var(--b1); margin: 44px 0; }
+
+/* scroll reveal */
+.reveal { opacity: 0; transform: translateY(16px); transition: all .5s ease; }
+.reveal.visible { opacity: 1; transform: translateY(0); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- ── HERO ── -->
+<div class="hero">
+  <div class="hero-glow"></div>
+  <div class="tag"><div class="tag-dot"></div>Complete Setup Guide</div>
+  <h1>Quantum Route<br><span>Optimization</span></h1>
+  <p class="hero-sub">Full working model for VS Code — step-by-step explanation from installation to results</p>
+  <div class="hero-chips">
+    <span class="chip c">Python 3.8+</span>
+    <span class="chip p">No Dependencies</span>
+    <span class="chip g">VS Code</span>
+    <span class="chip a">QAOA + Annealing</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- STEP 1: PROJECT STRUCTURE -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div class="sec-head reveal">
+  <div class="sec-num c">1</div>
+  <div class="sec-title">Project Structure</div>
+  <div class="sec-line"></div>
+</div>
+
+<div class="card reveal">
+  <p style="font-size:13px;color:var(--muted);margin-bottom:14px;">Create this folder structure on your computer:</p>
+  <div class="tree">
+    <div class="tree-item dir">📁 quantum_route_project/</div>
+    <div class="tree-indent">
+      <div class="tree-item dir">📁 src/</div>
+      <div class="tree-indent">
+        <div class="tree-item py">🐍 __init__.py</div>
+        <div class="tree-item py">🐍 quantum_router.py &nbsp;&nbsp;<span class="fi">← core algorithm</span></div>
+      </div>
+      <div class="tree-item dir">📁 outputs/</div>
+      <div class="tree-indent">
+        <div class="tree-item txt">📄 result.json &nbsp;&nbsp;<span class="fi">← auto-generated</span></div>
+      </div>
+      <div class="tree-item main">🐍 main.py &nbsp;&nbsp;<span class="fi">← run this!</span></div>
+      <div class="tree-item txt">📄 requirements.txt</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- STEP 2: VS CODE SETUP -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div class="sec-head reveal">
+  <div class="sec-num p">2</div>
+  <div class="sec-title">VS Code Setup</div>
+  <div class="sec-line"></div>
+</div>
+
+<div class="step-card open reveal">
+  <div class="step-header" onclick="toggle(this)">
+    <span class="step-badge" style="background:rgba(56,189,248,.1);color:var(--cyan);">2.1</span>
+    <span class="step-name">Open project in VS Code</span>
+    <span class="step-arrow">▶</span>
+  </div>
+  <div class="step-body">
+    <p style="font-size:13px;color:var(--muted);margin-bottom:10px;">Open your terminal and run:</p>
+    <div class="code-wrap">
+      <div class="code-bar">
+        <div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+        <span class="code-label">Terminal</span>
+        <button class="copy-btn" onclick="copyCode(this)">copy</button>
+      </div>
+      <pre><span class="cm"># Navigate to your project folder</span>
+<span class="fn">cd</span> quantum_route_project
+
+<span class="cm"># Open in VS Code</span>
+<span class="fn">code</span> .
+</pre>
+    </div>
+    <div class="tip">
+      <span class="tip-icon">💡</span>
+      <span class="tip-text">If <code>code .</code> doesn't work, open VS Code manually → <strong>File → Open Folder</strong> → select <code>quantum_route_project</code></span>
+    </div>
+  </div>
+</div>
+
+<div class="step-card reveal">
+  <div class="step-header" onclick="toggle(this)">
+    <span class="step-badge" style="background:rgba(167,139,250,.1);color:var(--purple);">2.2</span>
+    <span class="step-name">Select Python Interpreter</span>
+    <span class="step-arrow">▶</span>
+  </div>
+  <div class="step-body">
+    <div class="tip">
+      <span class="tip-icon">⌨️</span>
+      <span class="tip-text">Press <strong>Ctrl+Shift+P</strong> (Windows/Linux) or <strong>Cmd+Shift+P</strong> (Mac) → type <code>Python: Select Interpreter</code> → choose Python 3.8+</span>
+    </div>
+    <div class="code-wrap">
+      <div class="code-bar">
+        <div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+        <span class="code-label">Check Python Version</span>
+        <button class="copy-btn" onclick="copyCode(this)">copy</button>
+      </div>
+      <pre><span class="fn">python</span> --version
+<span class="cm"># Should show: Python 3.8.x or higher</span>
+</pre>
+    </div>
+  </div>
+</div>
+
+<div class="step-card reveal">
+  <div class="step-header" onclick="toggle(this)">
+    <span class="step-badge" style="background:rgba(52,211,153,.1);color:var(--green);">2.3</span>
+    <span class="step-name">Install Recommended VS Code Extensions</span>
+    <span class="step-arrow">▶</span>
+  </div>
+  <div class="step-body">
+    <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">Install these extensions from the Extensions panel (Ctrl+Shift+X):</p>
+    <div class="ext-grid">
+      <div class="ext-card">
+        <div class="ext-name" style="color:var(--cyan);">🐍 Python</div>
+        <div class="ext-desc">by Microsoft — IntelliSense, debugging, linting</div>
+      </div>
+      <div class="ext-card">
+        <div class="ext-name" style="color:var(--purple);">🔬 Pylance</div>
+        <div class="ext-desc">Fast type checking and autocomplete</div>
+      </div>
+      <div class="ext-card">
+        <div class="ext-name" style="color:var(--amber);">📓 Jupyter</div>
+        <div class="ext-desc">Run .ipynb notebooks inside VS Code</div>
+      </div>
+      <div class="ext-card">
+        <div class="ext-name" style="color:var(--green);">🎨 Indent Rainbow</div>
+        <div class="ext-desc">Colorize indentation for easy reading</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- STEP 3: FILES TO CREATE -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div class="sec-head reveal">
+  <div class="sec-num g">3</div>
+  <div class="sec-title">Files to Create</div>
+  <div class="sec-line"></div>
+</div>
+
+<div class="step-card open reveal">
+  <div class="step-header" onclick="toggle(this)">
+    <span class="step-badge" style="background:rgba(52,211,153,.1);color:var(--green);">FILE 1</span>
+    <span class="step-name">src/quantum_router.py — Core Algorithm</span>
+    <span class="step-arrow">▶</span>
+  </div>
+  <div class="step-body">
+    <p style="font-size:13px;color:var(--muted);margin-bottom:10px;">This file contains all the algorithm classes. Key classes inside:</p>
+    <div class="algo-flow">
+      <div class="algo-step">
+        <div class="algo-idx" style="color:var(--cyan);">CL1</div>
+        <div class="algo-body">
+          <div class="algo-title">ProblemGenerator</div>
+          <div class="algo-desc">Generates random delivery nodes, vehicles, and depot coordinates</div>
+          <div class="algo-file">→ generate_random(n_nodes, n_vehicles, area_size, seed)</div>
+        </div>
+      </div>
+      <div class="algo-step">
+        <div class="algo-idx" style="color:var(--purple);">CL2</div>
+        <div class="algo-body">
+          <div class="algo-title">DistanceMatrix</div>
+          <div class="algo-desc">Builds full N×N Euclidean distance matrix between all points</div>
+          <div class="algo-file">→ matrix[i][j] = √((x₁-x₂)² + (y₁-y₂)²)</div>
+        </div>
+      </div>
+      <div class="algo-step">
+        <div class="algo-idx" style="color:var(--amber);">CL3</div>
+        <div class="algo-body">
+          <div class="algo-title">QUBOBuilder</div>
+          <div class="algo-desc">Encodes VRP constraints as binary optimization matrix Q where min x^T·Q·x</div>
+          <div class="algo-file">→ 3 penalty terms: route cost + visit-once + capacity</div>
+        </div>
+      </div>
+      <div class="algo-step">
+        <div class="algo-idx" style="color:var(--rose);">CL4</div>
+        <div class="algo-body">
+          <div class="algo-title">ClassicalSolver</div>
+          <div class="algo-desc">Nearest-neighbor greedy heuristic — creates initial routes</div>
+          <div class="algo-file">→ Always picks closest unvisited node</div>
+        </div>
+      </div>
+      <div class="algo-step">
+        <div class="algo-idx" style="color:var(--green);">CL5</div>
+        <div class="algo-body">
+          <div class="algo-title">TwoOptSolver</div>
+          <div class="algo-desc">2-opt local search — reverses sub-routes to remove crossings. O(n²) per iter</div>
+          <div class="algo-file">→ optimize_route() + optimize_all()</div>
+        </div>
+      </div>
+      <div class="algo-step">
+        <div class="algo-idx" style="color:var(--cyan);">CL6</div>
+        <div class="algo-body">
+          <div class="algo-title">QuantumAnnealingOptimizer</div>
+          <div class="algo-desc">Quantum tunneling simulation — accepts worse solutions with quantum probability</div>
+          <div class="algo-file">→ P(accept) = exp(-ΔE / T · tunnelFactor) where tunnelFactor ∝ QAOA layers</div>
+        </div>
+      </div>
+      <div class="algo-step">
+        <div class="algo-idx" style="color:var(--purple);">CL7</div>
+        <div class="algo-body">
+          <div class="algo-title">QuantumRouteOptimizer</div>
+          <div class="algo-desc">Main orchestrator — runs the full pipeline and returns OptimizationResult</div>
+          <div class="algo-file">→ optimize(nodes, vehicles, depot)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="step-card reveal">
+  <div class="step-header" onclick="toggle(this)">
+    <span class="step-badge" style="background:rgba(251,191,36,.1);color:var(--amber);">FILE 2</span>
+    <span class="step-name">main.py — Entry Point (Run This!)</span>
+    <span class="step-arrow">▶</span>
+  </div>
+  <div class="step-body">
+    <div class="code-wrap">
+      <div class="code-bar">
+        <div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+        <span class="code-label">main.py</span>
+        <button class="copy-btn" onclick="copyCode(this)">copy</button>
+      </div>
+<pre><span class="kw">from</span> src.quantum_router <span class="kw">import</span> ProblemGenerator, QuantumRouteOptimizer
+
+<span class="cm"># ── Configure your problem ─────────────────────────────</span>
+N_NODES         = <span class="nu">12</span>       <span class="cm"># delivery locations (5–25)</span>
+N_VEHICLES      = <span class="nu">3</span>        <span class="cm"># fleet size (1–6)</span>
+QAOA_LAYERS     = <span class="nu">5</span>        <span class="cm"># circuit depth (1–12)</span>
+ANNEALING_STEPS = <span class="nu">300</span>      <span class="cm"># optimization iterations</span>
+ALGORITHM       = <span class="st">"hybrid"</span> <span class="cm"># "hybrid", "classical"</span>
+<span class="cm"># ──────────────────────────────────────────────────────</span>
+
+<span class="cm"># Step 1: Generate problem</span>
+nodes, vehicles, depot = ProblemGenerator.generate_random(
+    n_nodes    = N_NODES,
+    n_vehicles = N_VEHICLES,
+    seed       = <span class="nu">42</span>,
+)
+
+<span class="cm"># Steps 2–7: Run full pipeline</span>
+optimizer = QuantumRouteOptimizer(
+    qaoa_layers     = QAOA_LAYERS,
+    annealing_steps = ANNEALING_STEPS,
+    algorithm       = ALGORITHM,
+)
+result = optimizer.optimize(nodes, vehicles, depot)
+optimizer.save_result(result, nodes, depot)
+</pre>
+    </div>
+  </div>
+</div>
+
+<div class="step-card reveal">
+  <div class="step-header" onclick="toggle(this)">
+    <span class="step-badge" style="background:rgba(56,189,248,.1);color:var(--cyan);">FILE 3</span>
+    <span class="step-name">src/__init__.py — Package Init</span>
+    <span class="step-arrow">▶</span>
+  </div>
+  <div class="step-body">
+    <div class="code-wrap">
+      <div class="code-bar">
+        <div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+        <span class="code-label">src/__init__.py</span>
+        <button class="copy-btn" onclick="copyCode(this)">copy</button>
+      </div>
+      <pre><span class="cm"># Quantum Route Optimizer Package</span></pre>
+    </div>
+    <div class="tip">
+      <span class="tip-icon">⚠️</span>
+      <span class="tip-text">This file must exist (even if empty) for Python to treat <code>src/</code> as a package. Without it, <code>from src.quantum_router import ...</code> will fail.</span>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- STEP 4: RUN THE CODE -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div class="sec-head reveal">
+  <div class="sec-num a">4</div>
+  <div class="sec-title">Running the Code</div>
+  <div class="sec-line"></div>
+</div>
+
+<div class="card reveal">
+  <p style="font-size:14px;font-weight:700;margin-bottom:12px;">Method 1 — VS Code Terminal <span style="color:var(--green);font-size:12px;">(Recommended)</span></p>
+  <div class="code-wrap">
+    <div class="code-bar">
+      <div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+      <span class="code-label">VS Code Terminal (Ctrl + `)</span>
+      <button class="copy-btn" onclick="copyCode(this)">copy</button>
+    </div>
+    <pre><span class="cm"># Make sure you're in the project root folder</span>
+<span class="fn">python</span> main.py</pre>
+  </div>
+
+  <p style="font-size:14px;font-weight:700;margin:18px 0 12px;">Method 2 — Run Button</p>
+  <div class="tip">
+    <span class="tip-icon">▶</span>
+    <span class="tip-text">Open <code>main.py</code> in VS Code → click the green <strong>▶ Run Python File</strong> button in the top-right corner</span>
+  </div>
+
+  <p style="font-size:14px;font-weight:700;margin:18px 0 12px;">Method 3 — Debug Mode (F5)</p>
+  <div class="tip">
+    <span class="tip-icon">🔍</span>
+    <span class="tip-text">Press <strong>F5</strong> to run with the debugger. Set breakpoints by clicking the red dot margin — inspect variables at each step of the algorithm.</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- STEP 5: EXPECTED OUTPUT -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div class="sec-head reveal">
+  <div class="sec-num r">5</div>
+  <div class="sec-title">Expected Output</div>
+  <div class="sec-line"></div>
+</div>
+
+<div class="card reveal">
+  <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">When you run <code style="font-family:'DM Mono',monospace;font-size:11px;background:var(--s3);padding:1px 6px;border-radius:4px;color:var(--cyan);">python main.py</code> you should see:</p>
+  <div class="output-box">
+    <div class="out-line"><span class="out-label">[STEP 1]</span><span class="out-val">Generated: 12 nodes, 3 vehicles, area 100×100 km</span></div>
+    <div class="out-line"><span class="out-label">[STEP 2]</span><span class="out-val">Built 13×13 distance matrix</span></div>
+    <div class="out-line"><span class="out-label">[STEP 3]</span><span class="out-val">Built 36×36 QUBO matrix with 36 binary variables</span></div>
+    <div class="out-line"><span class="out-label">[STEP 4]</span><span class="out-val w">Classical distance: 410.25 km</span></div>
+    <div class="out-line"><span class="out-label">[STEP 5]</span><span class="out-val">After 2-opt: 404.16 km</span></div>
+    <div class="out-line"><span class="out-label">[STEP 6]</span><span class="out-val hi">Quantum distance: 355.57 km ✓</span></div>
+    <div style="margin-top:8px;border-top:1px solid var(--dim);padding-top:8px;">
+      <div class="out-line"><span class="out-label">Improvement:</span><span class="out-val hi">13.33%</span></div>
+      <div class="out-line"><span class="out-label">Qubits:</span><span class="out-val">36 (12 nodes × 3 vehicles)</span></div>
+      <div class="out-line"><span class="out-label">Vehicle 1:</span><span class="out-val">7 → 12 → 3 → 6 → 1</span></div>
+      <div class="out-line"><span class="out-label">Vehicle 2:</span><span class="out-val">11 → 5 → 8</span></div>
+      <div class="out-line"><span class="out-label">Vehicle 3:</span><span class="out-val">10 → 4 → 2 → 9</span></div>
+      <div class="out-line"><span class="out-label">Saved to:</span><span class="out-val hi">outputs/result.json</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- STEP 6: ALGORITHM DEEP DIVE -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div class="sec-head reveal">
+  <div class="sec-num c">6</div>
+  <div class="sec-title">Algorithm Deep Dive</div>
+  <div class="sec-line"></div>
+</div>
+
+<div class="card-grid reveal">
+  <div class="card" style="padding:18px;">
+    <p style="color:var(--cyan);font-size:11px;letter-spacing:2px;font-family:'DM Mono',monospace;margin-bottom:8px;">QUBO ENCODING</p>
+    <p style="font-size:13px;color:var(--muted);line-height:1.6;">
+      VRP becomes: <strong style="color:var(--text);">min x^T · Q · x</strong><br>
+      Each binary variable x_{i,k} = 1 means <em>node i assigned to vehicle k</em>.<br>
+      Three penalty terms enforce constraints without explicit if-statements.
+    </p>
+  </div>
+  <div class="card" style="padding:18px;">
+    <p style="color:var(--purple);font-size:11px;letter-spacing:2px;font-family:'DM Mono',monospace;margin-bottom:8px;">QUANTUM TUNNELING</p>
+    <p style="font-size:13px;color:var(--muted);line-height:1.6;">
+      Accept probability: <strong style="color:var(--text);">P = exp(−ΔE / T · τ)</strong><br>
+      where τ = tunnel factor grows with QAOA depth p.<br>
+      This lets the solver escape local minima classical SA cannot.
+    </p>
+  </div>
+</div>
+
+<div class="card reveal">
+  <p style="font-size:13px;font-weight:700;margin-bottom:14px;">Parameter Reference Table</p>
+  <table class="res-table">
+    <thead>
+      <tr>
+        <th>Parameter</th>
+        <th>Default</th>
+        <th>Effect</th>
+        <th>Range</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="mono" style="color:var(--cyan);">n_nodes</span></td>
+        <td><span class="badge-sm b-c">12</span></td>
+        <td>More nodes = harder problem, more qubits needed</td>
+        <td class="mono">5–25</td>
+      </tr>
+      <tr>
+        <td><span class="mono" style="color:var(--cyan);">n_vehicles</span></td>
+        <td><span class="badge-sm b-c">3</span></td>
+        <td>More vehicles = more route options, more variables</td>
+        <td class="mono">1–6</td>
+      </tr>
+      <tr>
+        <td><span class="mono" style="color:var(--purple);">qaoa_layers</span></td>
+        <td><span class="badge-sm b-p">5</span></td>
+        <td>Higher p = stronger tunneling boost, better quality</td>
+        <td class="mono">1–12</td>
+      </tr>
+      <tr>
+        <td><span class="mono" style="color:var(--purple);">annealing_steps</span></td>
+        <td><span class="badge-sm b-p">300</span></td>
+        <td>More steps = longer runtime but better convergence</td>
+        <td class="mono">100–1000</td>
+      </tr>
+      <tr>
+        <td><span class="mono" style="color:var(--green);">algorithm</span></td>
+        <td><span class="badge-sm b-g">hybrid</span></td>
+        <td>"classical" skips quantum step entirely</td>
+        <td class="mono">hybrid / classical</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- STEP 7: COMMON ERRORS -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div class="sec-head reveal">
+  <div class="sec-num p">7</div>
+  <div class="sec-title">Common Errors & Fixes</div>
+  <div class="sec-line"></div>
+</div>
+
+<div class="reveal">
+  <div class="tip">
+    <span class="tip-icon">❌</span>
+    <span class="tip-text"><strong>ModuleNotFoundError: No module named 'src'</strong><br>
+    Fix: Make sure you run <code>python main.py</code> from inside the <code>quantum_route_project/</code> folder, not from inside <code>src/</code>. Also ensure <code>src/__init__.py</code> exists.</span>
+  </div>
+  <div class="tip">
+    <span class="tip-icon">❌</span>
+    <span class="tip-text"><strong>python: command not found</strong><br>
+    Fix: Try <code>python3 main.py</code> instead. On Windows, check that Python is added to PATH during installation.</span>
+  </div>
+  <div class="tip">
+    <span class="tip-icon">❌</span>
+    <span class="tip-text"><strong>FileNotFoundError: outputs/result.json</strong><br>
+    Fix: Create the <code>outputs/</code> folder manually, or the code will create it automatically on first run.</span>
+  </div>
+  <div class="tip">
+    <span class="tip-icon">✅</span>
+    <span class="tip-text"><strong>Tip: Use VS Code's integrated terminal</strong><br>
+    Press <code>Ctrl + `</code> to open terminal directly inside VS Code. It automatically sets the working directory to your project root.</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- STEP 8: CUSTOMIZE -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div class="sec-head reveal">
+  <div class="sec-num g">8</div>
+  <div class="sec-title">Customize & Experiment</div>
+  <div class="sec-line"></div>
+</div>
+
+<div class="card reveal">
+  <p style="font-size:14px;font-weight:700;margin-bottom:12px;">Use your own delivery coordinates:</p>
+  <div class="code-wrap">
+    <div class="code-bar">
+      <div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+      <span class="code-label">main.py — custom coordinates</span>
+      <button class="copy-btn" onclick="copyCode(this)">copy</button>
+    </div>
+<pre><span class="kw">from</span> src.quantum_router <span class="kw">import</span> ProblemGenerator, QuantumRouteOptimizer
+
+<span class="cm"># Your delivery points: (x, y) — first one is the DEPOT</span>
+my_coords = [
+    (<span class="nu">50</span>, <span class="nu">50</span>),  <span class="cm"># DEPOT (warehouse)</span>
+    (<span class="nu">20</span>, <span class="nu">30</span>),  <span class="cm"># Customer 1</span>
+    (<span class="nu">70</span>, <span class="nu">20</span>),  <span class="cm"># Customer 2</span>
+    (<span class="nu">80</span>, <span class="nu">70</span>),  <span class="cm"># Customer 3</span>
+    (<span class="nu">30</span>, <span class="nu">80</span>),  <span class="cm"># Customer 4</span>
+    (<span class="nu">60</span>, <span class="nu">50</span>),  <span class="cm"># Customer 5</span>
+]
+
+nodes, vehicles, depot = ProblemGenerator.from_coordinates(
+    coords     = my_coords,
+    n_vehicles = <span class="nu">2</span>
+)
+
+optimizer = QuantumRouteOptimizer(qaoa_layers=<span class="nu">6</span>, annealing_steps=<span class="nu">400</span>)
+result    = optimizer.optimize(nodes, vehicles, depot)
+</pre>
+  </div>
+</div>
+
+<div class="card reveal">
+  <p style="font-size:14px;font-weight:700;margin-bottom:12px;">Compare quantum vs classical side-by-side:</p>
+  <div class="code-wrap">
+    <div class="code-bar">
+      <div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+      <span class="code-label">comparison experiment</span>
+      <button class="copy-btn" onclick="copyCode(this)">copy</button>
+    </div>
+<pre>nodes, vehicles, depot = ProblemGenerator.generate_random(<span class="nu">15</span>, <span class="nu">4</span>)
+
+<span class="cm"># Classical only</span>
+classical = QuantumRouteOptimizer(algorithm=<span class="st">"classical"</span>)
+r_classic = classical.optimize(nodes, vehicles, depot)
+
+<span class="cm"># Quantum hybrid</span>
+quantum   = QuantumRouteOptimizer(algorithm=<span class="st">"hybrid"</span>, qaoa_layers=<span class="nu">8</span>)
+r_quantum = quantum.optimize(nodes, vehicles, depot)
+
+<span class="fn">print</span>(<span class="st">f"Classical: {r_classic.total_distance:.2f} km"</span>)
+<span class="fn">print</span>(<span class="st">f"Quantum  : {r_quantum.total_distance:.2f} km"</span>)
+<span class="fn">print</span>(<span class="st">f"Gain     : {r_quantum.improvement_pct:.2f}%"</span>)
+</pre>
+  </div>
+</div>
+
+<div class="div"></div>
+<div style="text-align:center;padding-bottom:20px;" class="reveal">
+  <div class="tag" style="margin-bottom:14px;"><div class="tag-dot"></div>Ready to Run</div>
+  <p style="color:var(--muted);font-size:14px;">All files use <strong style="color:var(--text);">Python standard library only</strong> — no pip installs required to run the core optimizer.</p>
+</div>
+
+</div><!-- /wrap -->
+
+<script>
+function toggle(header) {
+  const card = header.parentElement;
+  card.classList.toggle('open');
+}
+
+function copyCode(btn) {
+  const pre = btn.closest('.code-wrap').querySelector('pre');
+  const text = pre.innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'copy'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+// Scroll reveal
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); } });
+}, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+</script>
+</body>
+</html>
